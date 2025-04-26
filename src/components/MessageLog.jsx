@@ -2,14 +2,30 @@ import React, { forwardRef, useMemo } from 'react';
 import './MessageLog.css';
 
 const MessageLog = forwardRef(({ messages, agents, location }, ref) => {
+  // Debug logging to help identify issues
+  console.log("MessageLog - Current location:", location);
+  console.log("MessageLog - All messages:", messages);
+  console.log("MessageLog - All agents:", agents);
+  
   // Filter messages to only show those between agents in the current location
   const locationAgentIds = agents
-    .filter(agent => agent.location === location || agent.location === undefined)
+    .filter(agent => {
+      const isInLocation = agent.location === location;
+      console.log(`Agent ${agent.name} (${agent.id}) location: ${agent.location}, current location: ${location}, is in location: ${isInLocation}`);
+      return isInLocation;
+    })
     .map(agent => agent.id);
   
-  const filteredMessages = messages.filter(msg => 
-    locationAgentIds.includes(msg.senderId) && locationAgentIds.includes(msg.receiverId)
-  );
+  console.log("MessageLog - Agents in location:", locationAgentIds);
+  
+  const filteredMessages = messages.filter(msg => {
+    const senderInLocation = locationAgentIds.includes(msg.senderId);
+    const receiverInLocation = locationAgentIds.includes(msg.receiverId);
+    console.log(`Message ${msg.id} - sender in location: ${senderInLocation}, receiver in location: ${receiverInLocation}`);
+    return senderInLocation && receiverInLocation;
+  });
+  
+  console.log("MessageLog - Filtered messages:", filteredMessages);
   
   // Organize messages into conversations
   const conversations = useMemo(() => {

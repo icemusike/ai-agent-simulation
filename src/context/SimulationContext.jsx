@@ -52,13 +52,18 @@ function simulationReducer(state, action) {
         }
       });
       
+      // Create a new locations object without the removed agent
+      const newLocations = { ...state.locations };
+      delete newLocations[action.payload];
+      
       return {
         ...state,
         agents: state.agents.filter(agent => agent.id !== action.payload),
         messages: state.messages.filter(
           msg => msg.senderId !== action.payload && msg.receiverId !== action.payload
         ),
-        conversationHistory: newConversationHistory
+        conversationHistory: newConversationHistory,
+        locations: newLocations
       };
       
     case 'UPDATE_AGENT':
@@ -219,7 +224,7 @@ export function SimulationProvider({ children, openAIKey }) {
       ...agent,
       id: uuidv4(),
       createdAt: new Date().toISOString(),
-      location: state.activeRoom
+      location: agent.location || state.activeRoom
     };
     dispatch({ type: 'ADD_AGENT', payload: newAgent });
     return newAgent;
@@ -286,7 +291,7 @@ export function SimulationProvider({ children, openAIKey }) {
   };
 
   const getAgentsInLocation = (location) => {
-    return state.agents.filter(agent => getAgentLocation(agent.id) === location);
+    return state.agents.filter(agent => state.locations[agent.id] === location);
   };
 
   // Get conversation history between two agents

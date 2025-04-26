@@ -70,7 +70,7 @@ const POPULAR_NAMES = [
 ];
 
 const RoomCreator = ({ onClose }) => {
-  const { hasOpenAI, generateRoomStoryboard, addRoom, addAgent, setActiveRoom } = useSimulation();
+  const { hasOpenAI, generateRoomStoryboard, addRoom, addAgent, setActiveRoom, moveAgent } = useSimulation();
   const [selectedTemplate, setSelectedTemplate] = useState(null);
   const [roomName, setRoomName] = useState('');
   const [customDescription, setCustomDescription] = useState('');
@@ -155,16 +155,22 @@ const RoomCreator = ({ onClose }) => {
     const agents = generatedAgents.length > 0 ? generatedAgents : generateDefaultAgents(roles, agentCount);
     
     // Add agents to the room
-    agents.forEach(agent => {
-      addAgent({
-        ...agent,
-        location: newRoom.id
+    const createdAgents = agents.map(agent => {
+      // Create the agent without specifying location
+      const newAgent = addAgent({
+        ...agent
       });
+      
+      // Explicitly move the agent to the new room
+      moveAgent(newAgent.id, newRoom.id);
+      
+      return newAgent;
     });
     
     // Set the active room to the newly created room
     setActiveRoom(newRoom.id);
     
+    // Close the modal
     onClose();
   };
   

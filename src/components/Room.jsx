@@ -13,6 +13,7 @@ const Room = ({ isRunning }) => {
     getRelationship, 
     updateRelationship,
     getAgentsInLocation,
+    getAgentLocation,
     updateAgent,
     hasOpenAI,
     generateAIMessage,
@@ -37,6 +38,18 @@ const Room = ({ isRunning }) => {
   // Get current room data
   const currentRoom = rooms.find(room => room.id === activeRoom) || rooms[0];
 
+  // Debug log to check agents and their locations
+  useEffect(() => {
+    console.log("Current room:", activeRoom);
+    console.log("All agents:", agents);
+    console.log("Agents in location:", locationAgents);
+    
+    // Debug each agent's location
+    agents.forEach(agent => {
+      console.log(`Agent ${agent.name} (${agent.id}) location: ${getAgentLocation(agent.id)}`);
+    });
+  }, [activeRoom, agents, locationAgents, getAgentLocation]);
+
   // Reset agent positions when changing rooms
   useEffect(() => {
     // Clear positions for agents that are no longer in the room
@@ -50,34 +63,65 @@ const Room = ({ isRunning }) => {
     // Reset interaction cooldowns
     interactionCooldowns.current = {};
     
-    // Initialize new positions in the next render cycle
+    // Force initialization of agent positions
+    if (roomRef.current && locationAgents.length > 0) {
+      initializeAgentPositions();
+    }
   }, [activeRoom, locationAgents]);
 
   // Initialize agent positions and velocities
+  const initializeAgentPositions = () => {
+    if (!roomRef.current) return;
+    
+    const roomWidth = roomRef.current.clientWidth;
+    const roomHeight = roomRef.current.clientHeight;
+    
+    locationAgents.forEach(agent => {
+      // Only initialize position if not already set
+      if (!agentPositions.current[agent.id]) {
+        agentPositions.current[agent.id] = {
+          x: Math.random() * (roomWidth - 60),
+          y: Math.random() * (roomHeight - 60)
+        };
+        
+        // Random velocity between -2 and 2
+        agentVelocities.current[agent.id] = {
+          x: (Math.random() * 4 - 2),
+          y: (Math.random() * 4 - 2)
+        };
+        
+        interactionCooldowns.current[agent.id] = {};
+      }
+      
+      // Update sprite position immediately
+      if (agentRefs.current[agent.id]) {
+        const position = agentPositions.current[agent.id];
+        agentRefs.current[agent.id].style.left = `${position.x}px`;
+        agentRefs.current[agent.id].style.top = `${position.y}px`;
+      }
+    });
+  };
+
+  // Initialize positions when room ref is available
   useEffect(() => {
     if (roomRef.current && locationAgents.length > 0) {
-      const roomWidth = roomRef.current.clientWidth;
-      const roomHeight = roomRef.current.clientHeight;
-      
-      locationAgents.forEach(agent => {
-        // Only initialize position if not already set
-        if (!agentPositions.current[agent.id]) {
-          agentPositions.current[agent.id] = {
-            x: Math.random() * (roomWidth - 60),
-            y: Math.random() * (roomHeight - 60)
-          };
-          
-          // Random velocity between -2 and 2
-          agentVelocities.current[agent.id] = {
-            x: (Math.random() * 4 - 2),
-            y: (Math.random() * 4 - 2)
-          };
-          
-          interactionCooldowns.current[agent.id] = {};
-        }
-      });
+      initializeAgentPositions();
     }
-  }, [locationAgents, roomRef.current]);
+  }, [roomRef.current, locationAgents]);
+
+  // Update agent positions when window is resized
+  useEffect(() => {
+    const handleResize = () => {
+      if (roomRef.current && locationAgents.length > 0) {
+        // Reset positions on resize
+        agentPositions.current = {};
+        initializeAgentPositions();
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [locationAgents]);
 
   // Animation loop for agent movement
   useEffect(() => {
@@ -134,6 +178,8 @@ const Room = ({ isRunning }) => {
     };
     
     if (isRunning) {
+      // Initialize positions before starting animation
+      initializeAgentPositions();
       animationFrameId = requestAnimationFrame(updateAgentPositions);
     }
     
@@ -573,6 +619,18 @@ const Room = ({ isRunning }) => {
     }
   };
 
+  // Force update agent positions when component mounts
+  useEffect(() => {
+    // Small delay to ensure the room element is fully rendered
+    const timer = setTimeout(() => {
+      if (roomRef.current && locationAgents.length > 0) {
+        initializeAgentPositions();
+      }
+    }, 100);
+    
+    return () => clearTimeout(timer);
+  }, []);
+
   return (
     <div className="room-container">
       <div className="room-header">
@@ -629,7 +687,15 @@ const Room = ({ isRunning }) => {
               <div 
                 key={agent.id}
                 className={`agent-sprite ${getAgentColor(agent)} facing-right`}
-                ref={el => agentRefs.current[agent.id] = el}
+                ref={el => {
+                  agentRefs.current[agent.id] = el;
+                  // Initialize position immediately if available
+                  if (el && agentPositions.current[agent.id]) {
+                    const position = agentPositions.current[agent.id];
+                    el.style.left = `${position.x}px`;
+                    el.style.top = `${position.y}px`;
+                  }
+                }}
                 title={agent.name}
               >
                 <div className="agent-emoji"></div>
