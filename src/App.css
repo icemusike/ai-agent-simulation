@@ -1,0 +1,82 @@
+.app-container {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 1800px; /* Increased from 1600px */
+  margin: 0 auto;
+}
+
+.controls {
+  margin-bottom: 2rem;
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+}
+
+.start-btn {
+  background-color: var(--success-color);
+  color: white;
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  transition: var(--transition);
+}
+
+.start-btn:hover {
+  background-color: #0d9488;
+  transform: translateY(-2px);
+}
+
+.stop-btn {
+  background-color: var(--danger-color);
+  color: white;
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  transition: var(--transition);
+}
+
+.stop-btn:hover {
+  background-color: #dc2626;
+  transform: translateY(-2px);
+}
+
+.main-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+@media (min-width: 1024px) {
+  .main-content {
+    flex-direction: row;
+    align-items: flex-start;
+  }
+  
+  .agent-creator {
+    width: 300px; /* Slightly reduced to give more space to room */
+    position: sticky;
+    top: 2rem;
+  }
+  
+  .room-container {
+    flex-grow: 1;
+    min-width: 0; /* Prevent flex item from overflowing */
+  }
+}
+
+@media (min-width: 1400px) {
+  .agent-creator {
+    width: 320px;
+  }
+}
+
+@media (min-width: 1600px) {
+  .agent-creator {
+    width: 350px;
+  }
+}

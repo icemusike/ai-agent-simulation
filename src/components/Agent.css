@@ -1,0 +1,235 @@
+.agent-card {
+  background-color: var(--bg-card);
+  border-radius: var(--radius-lg);
+  padding: 1.25rem;
+  margin-bottom: 1.25rem;
+  box-shadow: var(--shadow-md);
+  transition: var(--transition);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  position: relative;
+  overflow: hidden;
+}
+
+.agent-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  background: linear-gradient(90deg, var(--primary-color), #8b5cf6);
+}
+
+.agent-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg);
+}
+
+.agent-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.agent-header h3 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.editable-name {
+  cursor: pointer;
+  position: relative;
+  padding-right: 1.5rem;
+}
+
+.edit-icon {
+  font-size: 0.8rem;
+  opacity: 0;
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  transition: opacity 0.2s ease;
+}
+
+.editable-name:hover .edit-icon {
+  opacity: 1;
+}
+
+.name-edit-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 100%;
+  max-width: 200px;
+}
+
+.name-edit-input {
+  padding: 0.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  border-radius: var(--radius-sm);
+  background-color: var(--bg-input);
+  color: var(--text-primary);
+  border: 1px solid var(--primary-color);
+}
+
+.name-edit-buttons {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.name-save-btn, .name-cancel-btn {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.8rem;
+  border-radius: var(--radius-sm);
+}
+
+.name-save-btn {
+  background-color: var(--success-color);
+}
+
+.name-save-btn:hover {
+  background-color: #0d9488;
+}
+
+.name-cancel-btn {
+  background-color: var(--neutral-color);
+}
+
+.name-cancel-btn:hover {
+  background-color: #4b5563;
+}
+
+.agent-controls {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.agent-controls button {
+  padding: 0.4rem 0.75rem;
+  font-size: 0.8rem;
+  border-radius: var(--radius-sm);
+}
+
+.details-toggle {
+  background-color: var(--neutral-color);
+  color: white;
+}
+
+.details-toggle:hover {
+  background-color: #4b5563;
+}
+
+.remove-agent {
+  background-color: var(--danger-color);
+  color: white;
+  border: none;
+  border-radius: var(--radius-sm);
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  font-size: 1rem;
+}
+
+.remove-agent:hover {
+  background-color: #dc2626;
+}
+
+.agent-basic-info {
+  margin-bottom: 1rem;
+}
+
+.agent-basic-info p {
+  margin-bottom: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.personality-summary {
+  margin-top: 1rem;
+}
+
+.trait-bar {
+  margin-bottom: 0.75rem;
+}
+
+.trait-bar span {
+  display: inline-block;
+  width: 110px;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.trait-bar-bg {
+  display: inline-block;
+  width: calc(100% - 120px);
+  height: 8px;
+  background-color: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.trait-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary-color), #8b5cf6);
+  border-radius: 4px;
+}
+
+.agent-details {
+  margin-top: 1.25rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--border-color);
+}
+
+.agent-details h4 {
+  margin: 0 0 0.75rem 0;
+  font-size: 1rem;
+  color: var(--text-primary);
+}
+
+.personality-traits ul,
+.agent-relationships ul {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 1.25rem 0;
+}
+
+.personality-traits li,
+.agent-relationships li {
+  margin-bottom: 0.5rem;
+  display: flex;
+  justify-content: space-between;
+  padding: 0.5rem;
+  background-color: rgba(255, 255, 255, 0.05);
+  border-radius: var(--radius-sm);
+}
+
+.personality-traits li:hover,
+.agent-relationships li:hover {
+  background-color: rgba(255, 255, 255, 0.08);
+}
+
+.relationship-status {
+  font-weight: 600;
+}
+
+.agent-backstory {
+  font-size: 0.9rem;
+  font-style: italic;
+  color: var(--text-muted);
+  padding: 1rem;
+  background-color: rgba(255, 255, 255, 0.05);
+  border-radius: var(--radius-md);
+  border-left: 3px solid var(--primary-color);
+}
