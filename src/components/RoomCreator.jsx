@@ -69,8 +69,8 @@ const POPULAR_NAMES = [
   "Taylor", "Jordan", "Casey", "Riley", "Jessie", "Avery", "Jaime", "Peyton", "Kerry", "Jody"
 ];
 
-const RoomCreator = ({ onClose, onCreateRoom }) => {
-  const { hasOpenAI, generateRoomStoryboard, addRoom, addAgent } = useSimulation();
+const RoomCreator = ({ onClose }) => {
+  const { hasOpenAI, generateRoomStoryboard, addRoom, addAgent, setActiveRoom } = useSimulation();
   const [selectedTemplate, setSelectedTemplate] = useState(null);
   const [roomName, setRoomName] = useState('');
   const [customDescription, setCustomDescription] = useState('');
@@ -161,6 +161,9 @@ const RoomCreator = ({ onClose, onCreateRoom }) => {
         location: newRoom.id
       });
     });
+    
+    // Set the active room to the newly created room
+    setActiveRoom(newRoom.id);
     
     onClose();
   };
