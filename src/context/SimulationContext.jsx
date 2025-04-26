@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useReducer } from 'react';
 import { v4 as uuidv4 } from 'uuid';
+import OpenAI from 'openai';
 
 const SimulationContext = createContext();
 
@@ -90,8 +91,39 @@ function simulationReducer(state, action) {
   }
 }
 
-export function SimulationProvider({ children }) {
+export function SimulationProvider({ children, openAIKey }) {
   const [state, dispatch] = useReducer(simulationReducer, initialState);
+  const [openai, setOpenai] = useState(() => {
+    if (openAIKey) {
+      try {
+        return new OpenAI({
+          apiKey: openAIKey,
+          dangerouslyAllowBrowser: true
+        });
+      } catch (error) {
+        console.error("Error initializing OpenAI:", error);
+        return null;
+      }
+    }
+    return null;
+  });
+
+  // Update OpenAI client when API key changes
+  React.useEffect(() => {
+    if (openAIKey) {
+      try {
+        setOpenai(new OpenAI({
+          apiKey: openAIKey,
+          dangerouslyAllowBrowser: true
+        }));
+      } catch (error) {
+        console.error("Error updating OpenAI client:", error);
+        setOpenai(null);
+      }
+    } else {
+      setOpenai(null);
+    }
+  }, [openAIKey]);
 
   const addAgent = (agent) => {
     const newAgent = {
@@ -167,6 +199,136 @@ export function SimulationProvider({ children }) {
     return state.agents.filter(agent => getAgentLocation(agent.id) === location);
   };
 
+  // Generate message using OpenAI
+  const generateAIMessage = async (initiator, responder, interactionType, relationship) => {
+    if (!openai) {
+      return null; // Return null if OpenAI is not initialized
+    }
+
+    try {
+      // Create a detailed prompt based on agent personalities and relationship
+      const prompt = createMessagePrompt(initiator, responder, interactionType, relationship);
+      
+      const response = await openai.chat.completions.create({
+        model: "gpt-3.5-turbo",
+        messages: [
+          {
+            role: "system",
+            content: prompt
+          }
+        ],
+        max_tokens: 100,
+        temperature: 0.7,
+      });
+
+      return response.choices[0].message.content.trim();
+    } catch (error) {
+      console.error("Error generating AI message:", error);
+      return null;
+    }
+  };
+
+  // Generate response using OpenAI
+  const generateAIResponse = async (responder, initiator, initialInteractionType, relationship) => {
+    if (!openai) {
+      return null; // Return null if OpenAI is not initialized
+    }
+
+    try {
+      // Create a detailed prompt based on agent personalities and relationship
+      const prompt = createResponsePrompt(responder, initiator, initialInteractionType, relationship);
+      
+      const response = await openai.chat.completions.create({
+        model: "gpt-3.5-turbo",
+        messages: [
+          {
+            role: "system",
+            content: prompt
+          }
+        ],
+        max_tokens: 100,
+        temperature: 0.7,
+      });
+
+      return response.choices[0].message.content.trim();
+    } catch (error) {
+      console.error("Error generating AI response:", error);
+      return null;
+    }
+  };
+
+  // Create a detailed prompt for message generation
+  const createMessagePrompt = (initiator, responder, interactionType, relationship) => {
+    const relationshipDescription = getRelationshipDescription(relationship);
+    const initiatorPersonality = getPersonalityDescription(initiator);
+    const responderPersonality = getPersonalityDescription(responder);
+    
+    return `You are ${initiator.name}, a ${initiator.role} with the following personality traits: ${initiatorPersonality}.
+    
+You are speaking to ${responder.name}, a ${responder.role} with these traits: ${responderPersonality}.
+
+Your relationship with ${responder.name} is: ${relationshipDescription}.
+
+Generate a ${interactionType} message from you to ${responder.name}. The message should reflect your personality, your relationship with ${responder.name}, and should be ${interactionType} in tone.
+
+Keep the message concise (1-2 sentences) and make it sound natural. Include ${responder.name} in your message.
+
+Only respond with the message text, nothing else.`;
+  };
+
+  // Create a detailed prompt for response generation
+  const createResponsePrompt = (responder, initiator, initialInteractionType, relationship) => {
+    const relationshipDescription = getRelationshipDescription(relationship);
+    const responderPersonality = getPersonalityDescription(responder);
+    const initiatorPersonality = getPersonalityDescription(initiator);
+    
+    return `You are ${responder.name}, a ${responder.role} with the following personality traits: ${responderPersonality}.
+    
+${initiator.name}, a ${initiator.role} with these traits: ${initiatorPersonality}, just spoke to you in a ${initialInteractionType} tone.
+
+Your relationship with ${initiator.name} is: ${relationshipDescription}.
+
+Generate a response to ${initiator.name}. Your response should reflect your personality and your relationship with ${initiator.name}.
+
+Keep the response concise (1-2 sentences) and make it sound natural. Include ${initiator.name} in your response.
+
+Only respond with the message text, nothing else.`;
+  };
+
+  // Helper function to describe personality
+  const getPersonalityDescription = (agent) => {
+    const traits = [];
+    
+    if (agent.traits.friendliness > 0.7) traits.push("very friendly");
+    else if (agent.traits.friendliness > 0.5) traits.push("somewhat friendly");
+    else if (agent.traits.friendliness < 0.3) traits.push("unfriendly");
+    
+    if (agent.traits.aggression > 0.7) traits.push("highly aggressive");
+    else if (agent.traits.aggression > 0.5) traits.push("somewhat aggressive");
+    else if (agent.traits.aggression < 0.3) traits.push("non-aggressive");
+    
+    if (agent.traits.curiosity > 0.7) traits.push("very curious");
+    else if (agent.traits.curiosity > 0.5) traits.push("somewhat curious");
+    else if (agent.traits.curiosity < 0.3) traits.push("incurious");
+    
+    if (agent.traits.extraversion > 0.7) traits.push("highly extraverted");
+    else if (agent.traits.extraversion > 0.5) traits.push("somewhat extraverted");
+    else if (agent.traits.extraversion < 0.3) traits.push("introverted");
+    
+    return traits.join(", ");
+  };
+
+  // Helper function to describe relationship
+  const getRelationshipDescription = (value) => {
+    if (value > 75) return "very close friends";
+    if (value > 50) return "friends";
+    if (value > 25) return "friendly acquaintances";
+    if (value > -25) return "neutral acquaintances";
+    if (value > -50) return "dislike each other";
+    if (value > -75) return "enemies";
+    return "bitter enemies";
+  };
+
   const value = {
     agents: state.agents,
     messages: state.messages,
@@ -181,7 +343,10 @@ export function SimulationProvider({ children }) {
     getAgentLocation,
     getAgentsInLocation,
     addItem,
-    removeItem
+    removeItem,
+    hasOpenAI: !!openai,
+    generateAIMessage,
+    generateAIResponse
   };
 
   return (

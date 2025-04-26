@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useSimulation } from '../context/SimulationContext';
 import Agent from './Agent';
 import MessageLog from './MessageLog';
+import InteractionVisualizer from './InteractionVisualizer';
 import './Room.css';
 
 const Room = ({ isRunning }) => {
@@ -12,10 +13,14 @@ const Room = ({ isRunning }) => {
     getRelationship, 
     updateRelationship,
     getAgentsInLocation,
-    updateAgent
+    updateAgent,
+    hasOpenAI,
+    generateAIMessage,
+    generateAIResponse
   } = useSimulation();
   
   const [currentLocation, setCurrentLocation] = useState('main');
+  const [isGeneratingMessage, setIsGeneratingMessage] = useState(false);
   const simulationInterval = useRef(null);
   const messageLogRef = useRef(null);
   const roomRef = useRef(null);
@@ -116,6 +121,8 @@ const Room = ({ isRunning }) => {
 
   // Check for collisions between agents
   const checkCollisions = () => {
+    if (isGeneratingMessage) return; // Skip collision check if already generating a message
+    
     const agentIds = Object.keys(agentPositions.current);
     
     for (let i = 0; i < agentIds.length; i++) {
@@ -168,7 +175,9 @@ const Room = ({ isRunning }) => {
     }
   }, [messages]);
 
-  const generateInteraction = (initiator, responder, relationship) => {
+  const generateInteraction = async (initiator, responder, relationship) => {
+    setIsGeneratingMessage(true);
+    
     // Determine interaction type based on personalities and relationship
     let interactionType = 'neutral';
     const randomFactor = Math.random();
@@ -211,17 +220,33 @@ const Room = ({ isRunning }) => {
     let content = '';
     let relationshipChange = 0;
     
+    // Try to use OpenAI if available
+    if (hasOpenAI) {
+      try {
+        const aiMessage = await generateAIMessage(initiator, responder, interactionType, relationship);
+        if (aiMessage) {
+          content = aiMessage;
+        } else {
+          // Fallback to predefined messages if AI generation fails
+          content = generateFallbackMessage(initiator, responder, interactionType);
+        }
+      } catch (error) {
+        console.error("Error generating AI message:", error);
+        content = generateFallbackMessage(initiator, responder, interactionType);
+      }
+    } else {
+      content = generateFallbackMessage(initiator, responder, interactionType);
+    }
+    
+    // Determine relationship change based on interaction type
     switch (interactionType) {
       case 'friendly':
-        content = generateFriendlyInteraction(initiator, responder);
         relationshipChange = Math.floor(Math.random() * 10) + 5; // +5 to +15
         break;
       case 'hostile':
-        content = generateHostileInteraction(initiator, responder);
         relationshipChange = -1 * (Math.floor(Math.random() * 10) + 5); // -5 to -15
         break;
       default:
-        content = generateNeutralInteraction(initiator, responder);
         relationshipChange = Math.floor(Math.random() * 6) - 2; // -2 to +3
     }
     
@@ -246,7 +271,7 @@ const Room = ({ isRunning }) => {
     }, 2000);
   };
 
-  const generateResponse = (responder, initiator, initialInteractionType, updatedRelationship) => {
+  const generateResponse = async (responder, initiator, initialInteractionType, updatedRelationship) => {
     // Determine response type based on initial interaction and personality
     let responseType = 'neutral';
     const randomFactor = Math.random();
@@ -284,17 +309,33 @@ const Room = ({ isRunning }) => {
     let content = '';
     let relationshipChange = 0;
     
+    // Try to use OpenAI if available
+    if (hasOpenAI) {
+      try {
+        const aiResponse = await generateAIResponse(responder, initiator, initialInteractionType, updatedRelationship);
+        if (aiResponse) {
+          content = aiResponse;
+        } else {
+          // Fallback to predefined responses if AI generation fails
+          content = generateFallbackResponse(responder, initiator, initialInteractionType, responseType);
+        }
+      } catch (error) {
+        console.error("Error generating AI response:", error);
+        content = generateFallbackResponse(responder, initiator, initialInteractionType, responseType);
+      }
+    } else {
+      content = generateFallbackResponse(responder, initiator, initialInteractionType, responseType);
+    }
+    
+    // Determine relationship change based on response type
     switch (responseType) {
       case 'friendly':
-        content = generateFriendlyResponse(responder, initiator, initialInteractionType);
         relationshipChange = Math.floor(Math.random() * 8) + 3; // +3 to +10
         break;
       case 'hostile':
-        content = generateHostileResponse(responder, initiator, initialInteractionType);
         relationshipChange = -1 * (Math.floor(Math.random() * 8) + 3); // -3 to -10
         break;
       default:
-        content = generateNeutralResponse(responder, initiator, initialInteractionType);
         relationshipChange = Math.floor(Math.random() * 4) - 1; // -1 to +2
     }
     
@@ -312,6 +353,9 @@ const Room = ({ isRunning }) => {
     // Update relationship again based on the response
     updateRelationship(initiator.id, responder.id, updatedRelationship + relationshipChange);
     updateRelationship(responder.id, initiator.id, updatedRelationship + relationshipChange);
+    
+    // Reset the generating message flag
+    setIsGeneratingMessage(false);
   };
 
   // Show speech bubble above agent
@@ -331,6 +375,29 @@ const Room = ({ isRunning }) => {
         bubble.parentNode.removeChild(bubble);
       }
     }, 4000);
+  };
+
+  // Fallback message generation functions
+  const generateFallbackMessage = (initiator, responder, interactionType) => {
+    switch (interactionType) {
+      case 'friendly':
+        return generateFriendlyInteraction(initiator, responder);
+      case 'hostile':
+        return generateHostileInteraction(initiator, responder);
+      default:
+        return generateNeutralInteraction(initiator, responder);
+    }
+  };
+
+  const generateFallbackResponse = (responder, initiator, initialInteractionType, responseType) => {
+    switch (responseType) {
+      case 'friendly':
+        return generateFriendlyResponse(responder, initiator, initialInteractionType);
+      case 'hostile':
+        return generateHostileResponse(responder, initiator, initialInteractionType);
+      default:
+        return generateNeutralResponse(responder, initiator, initialInteractionType);
+    }
   };
 
   // Helper functions to generate different types of interactions
@@ -508,9 +575,15 @@ const Room = ({ isRunning }) => {
       
       <div className="simulation-status">
         {isRunning ? (
-          <p className="status-running">Simulation is running - Agents will interact when they touch</p>
+          <p className="status-running">
+            Simulation is running - Agents will interact when they touch
+            {hasOpenAI && <span className="ai-status active"> • OpenAI integration active</span>}
+          </p>
         ) : (
-          <p className="status-paused">Simulation is paused - Press Start to begin</p>
+          <p className="status-paused">
+            Simulation is paused - Press Start to begin
+            {hasOpenAI && <span className="ai-status active"> • OpenAI integration active</span>}
+          </p>
         )}
       </div>
       
@@ -522,6 +595,9 @@ const Room = ({ isRunning }) => {
           ))}
         </div>
       </div>
+      
+      {/* Add the InteractionVisualizer component */}
+      <InteractionVisualizer />
     </div>
   );
 };
