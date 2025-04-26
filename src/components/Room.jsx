@@ -94,6 +94,8 @@ const Room = ({ isRunning }) => {
         const position = agentPositions.current[agentId];
         const velocity = agentVelocities.current[agentId];
         
+        if (!position || !velocity) return;
+        
         // Update position
         position.x += velocity.x;
         position.y += velocity.y;
@@ -136,7 +138,9 @@ const Room = ({ isRunning }) => {
     }
     
     return () => {
-      cancelAnimationFrame(animationFrameId);
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+      }
     };
   }, [isRunning, locationAgents]);
 
@@ -166,6 +170,15 @@ const Room = ({ isRunning }) => {
         // If agents are close enough and not on cooldown, trigger interaction
         if (distance < 60) {
           const now = Date.now();
+          
+          // Initialize cooldown objects if they don't exist
+          if (!interactionCooldowns.current[agent1Id]) {
+            interactionCooldowns.current[agent1Id] = {};
+          }
+          if (!interactionCooldowns.current[agent2Id]) {
+            interactionCooldowns.current[agent2Id] = {};
+          }
+          
           const lastInteraction = interactionCooldowns.current[agent1Id][agent2Id] || 0;
           
           // Only allow interaction every 10 seconds between the same agents
@@ -180,7 +193,6 @@ const Room = ({ isRunning }) => {
               
               // Set cooldown
               interactionCooldowns.current[agent1Id][agent2Id] = now;
-              interactionCooldowns.current[agent2Id] = interactionCooldowns.current[agent2Id] || {};
               interactionCooldowns.current[agent2Id][agent1Id] = now;
             }
           }
