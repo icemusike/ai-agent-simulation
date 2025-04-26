@@ -2,12 +2,14 @@ import React, { useState, useEffect } from 'react'
 import Room from './components/Room'
 import AgentCreator from './components/AgentCreator'
 import Settings from './components/Settings'
+import RoomCreator from './components/RoomCreator'
 import { SimulationProvider } from './context/SimulationContext'
 import './App.css'
 
 function App() {
   const [isRunning, setIsRunning] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
+  const [showRoomCreator, setShowRoomCreator] = useState(false)
   const [openAIKey, setOpenAIKey] = useState(() => {
     return localStorage.getItem('openai_api_key') || '';
   });
@@ -32,6 +34,12 @@ function App() {
             {isRunning ? "Pause Simulation" : "Start Simulation"}
           </button>
           <button 
+            onClick={() => setShowRoomCreator(true)}
+            className="create-room-btn"
+          >
+            Create Room
+          </button>
+          <button 
             onClick={() => setShowSettings(true)}
             className="settings-btn"
           >
@@ -48,6 +56,35 @@ function App() {
             onClose={() => setShowSettings(false)} 
             onSave={handleSaveSettings}
             initialSettings={{ openAIKey }}
+          />
+        )}
+        
+        {showRoomCreator && (
+          <RoomCreator 
+            onClose={() => setShowRoomCreator(false)} 
+            onCreateRoom={(roomData) => {
+              const { addRoom, addAgent } = useSimulation();
+              
+              // Create the room
+              const newRoom = addRoom({
+                name: roomData.name,
+                description: roomData.description,
+                storyboard: roomData.storyboard
+              });
+              
+              // Add agents to the room
+              if (roomData.agents && roomData.agents.length > 0) {
+                roomData.agents.forEach(agent => {
+                  // Add agent with location set to the new room
+                  addAgent({
+                    ...agent,
+                    location: newRoom.id
+                  });
+                });
+              }
+              
+              setShowRoomCreator(false);
+            }}
           />
         )}
       </div>

@@ -32,7 +32,7 @@ const Settings = ({ onClose, onSave, initialSettings }) => {
           <div className="settings-section">
             <h3>OpenAI Integration</h3>
             <p className="settings-description">
-              Enter your OpenAI API key to enable AI-generated messages for agents. 
+              Enter your OpenAI API key to enable AI-generated messages for agents and storyboard generation. 
               When enabled, agents will communicate using the OpenAI API, with messages 
               tailored to their personality traits and relationships.
             </p>

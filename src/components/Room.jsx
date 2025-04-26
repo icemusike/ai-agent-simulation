@@ -16,10 +16,12 @@ const Room = ({ isRunning }) => {
     updateAgent,
     hasOpenAI,
     generateAIMessage,
-    generateAIResponse
+    generateAIResponse,
+    rooms,
+    activeRoom,
+    setActiveRoom
   } = useSimulation();
   
-  const [currentLocation, setCurrentLocation] = useState('main');
   const [isGeneratingMessage, setIsGeneratingMessage] = useState(false);
   const simulationInterval = useRef(null);
   const messageLogRef = useRef(null);
@@ -30,7 +32,26 @@ const Room = ({ isRunning }) => {
   const interactionCooldowns = useRef({});
 
   // Get agents in the current location
-  const locationAgents = getAgentsInLocation(currentLocation);
+  const locationAgents = getAgentsInLocation(activeRoom);
+  
+  // Get current room data
+  const currentRoom = rooms.find(room => room.id === activeRoom) || rooms[0];
+
+  // Reset agent positions when changing rooms
+  useEffect(() => {
+    // Clear positions for agents that are no longer in the room
+    Object.keys(agentPositions.current).forEach(agentId => {
+      if (!locationAgents.some(agent => agent.id === agentId)) {
+        delete agentPositions.current[agentId];
+        delete agentVelocities.current[agentId];
+      }
+    });
+    
+    // Reset interaction cooldowns
+    interactionCooldowns.current = {};
+    
+    // Initialize new positions in the next render cycle
+  }, [activeRoom, locationAgents]);
 
   // Initialize agent positions and velocities
   useEffect(() => {
@@ -542,7 +563,48 @@ const Room = ({ isRunning }) => {
 
   return (
     <div className="room-container">
-      <h2>Simulation Room: {currentLocation}</h2>
+      <div className="room-header">
+        <div className="room-selector">
+          <label htmlFor="room-select">Select Room:</label>
+          <select 
+            id="room-select" 
+            value={activeRoom}
+            onChange={(e) => setActiveRoom(e.target.value)}
+          >
+            {rooms.map(room => (
+              <option key={room.id} value={room.id}>
+                {room.name}
+              </option>
+            ))}
+          </select>
+        </div>
+        <h2>{currentRoom.name}</h2>
+        {currentRoom.storyboard && (
+          <button 
+            className="storyboard-toggle"
+            onClick={() => document.getElementById('storyboard-modal').showModal()}
+          >
+            View Storyboard
+          </button>
+        )}
+      </div>
+      
+      {currentRoom.storyboard && (
+        <dialog id="storyboard-modal" className="storyboard-modal">
+          <div className="storyboard-modal-content">
+            <h3>Storyboard: {currentRoom.name}</h3>
+            <div className="storyboard-text">
+              {currentRoom.storyboard}
+            </div>
+            <button 
+              className="close-storyboard"
+              onClick={() => document.getElementById('storyboard-modal').close()}
+            >
+              Close
+            </button>
+          </div>
+        </dialog>
+      )}
       
       <div className="room-content">
         <div className="physical-room" ref={roomRef}>
@@ -568,7 +630,7 @@ const Room = ({ isRunning }) => {
         <MessageLog 
           messages={messages} 
           agents={agents} 
-          location={currentLocation}
+          location={activeRoom}
           ref={messageLogRef}
         />
       </div>
