@@ -291,7 +291,11 @@ export function SimulationProvider({ children, openAIKey }) {
   };
 
   const getAgentsInLocation = (location) => {
-    return state.agents.filter(agent => state.locations[agent.id] === location);
+    // Enhanced function to properly find agents in a location by checking the locations map
+    return state.agents.filter(agent => {
+      const agentLocation = state.locations[agent.id];
+      return agentLocation === location;
+    });
   };
 
   // Get conversation history between two agents
@@ -342,14 +346,14 @@ export function SimulationProvider({ children, openAIKey }) {
   };
 
   // Generate a storyboard for a room using OpenAI
-  const generateRoomStoryboard = async (roomName, description, roles, agentCount) => {
+  const generateRoomStoryboard = async (roomName, description, roles, agentCount, userGuidelines = '') => {
     if (!openai) {
       return null; // Return null if OpenAI is not initialized
     }
 
     try {
       // Create a detailed prompt for storyboard generation
-      const prompt = createStoryboardPrompt(roomName, description, roles, agentCount);
+      const prompt = createStoryboardPrompt(roomName, description, roles, agentCount, userGuidelines);
       
       const response = await openai.chat.completions.create({
         model: "gpt-3.5-turbo",
@@ -366,7 +370,7 @@ export function SimulationProvider({ children, openAIKey }) {
       const storyboardText = response.choices[0].message.content.trim();
       
       // Generate agents based on the storyboard
-      const agentsPrompt = createAgentsPrompt(roomName, description, roles, storyboardText, agentCount);
+      const agentsPrompt = createAgentsPrompt(roomName, description, roles, storyboardText, agentCount, userGuidelines);
       
       const agentsResponse = await openai.chat.completions.create({
         model: "gpt-3.5-turbo",
@@ -412,7 +416,7 @@ export function SimulationProvider({ children, openAIKey }) {
   };
 
   // Create a prompt for storyboard generation
-  const createStoryboardPrompt = (roomName, description, roles, agentCount) => {
+  const createStoryboardPrompt = (roomName, description, roles, agentCount, userGuidelines = '') => {
     return `You are a creative narrative designer tasked with creating a detailed storyboard for a simulation room called "${roomName}".
 
 Room Description: ${description}
@@ -421,11 +425,16 @@ Available Roles: ${roles.join(', ')}
 
 Number of Agents: ${agentCount}
 
+${userGuidelines ? `User Guidelines: ${userGuidelines}
+
+Please incorporate these guidelines into the storyboard design.` : ''}
+
 Create a detailed storyboard that:
 1. Establishes the setting and atmosphere of the room
 2. Outlines potential relationships, conflicts, and dynamics between agents
 3. Suggests interesting scenarios that might unfold during the simulation
 4. Creates a cohesive narrative framework for the agents to interact within
+${userGuidelines ? '5. Follows the user guidelines provided above' : ''}
 
 The storyboard should be detailed but concise (300-500 words), focusing on creating an engaging scenario that will lead to interesting interactions between the agents.
 
@@ -433,7 +442,7 @@ Only respond with the storyboard text, nothing else.`;
   };
 
   // Create a prompt for generating agents based on the storyboard
-  const createAgentsPrompt = (roomName, description, roles, storyboard, agentCount) => {
+  const createAgentsPrompt = (roomName, description, roles, storyboard, agentCount, userGuidelines = '') => {
     return `You are an AI character designer tasked with creating ${agentCount} unique agents for a simulation room called "${roomName}".
 
 Room Description: ${description}
@@ -441,6 +450,10 @@ Room Description: ${description}
 Available Roles: ${roles.join(', ')}
 
 Storyboard: ${storyboard}
+
+${userGuidelines ? `User Guidelines: ${userGuidelines}
+
+Please keep these guidelines in mind when designing the agents.` : ''}
 
 Create ${agentCount} unique agents with distinct personalities that would fit into this scenario. Each agent should have:
 1. A name (common human names)

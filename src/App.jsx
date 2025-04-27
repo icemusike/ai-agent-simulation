@@ -8,12 +8,17 @@ import './App.css'
 
 // Create a wrapper component that has access to the simulation context
 const AppContent = () => {
+  const simulation = useSimulation();
   const [isRunning, setIsRunning] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
   const [showRoomCreator, setShowRoomCreator] = useState(false)
   const [openAIKey, setOpenAIKey] = useState(() => {
     return localStorage.getItem('openai_api_key') || '';
   });
+  
+  useEffect(() => {
+    console.log("Simulation context in AppContent:", simulation);
+  }, [simulation]);
   
   const handleSaveSettings = (settings) => {
     if (settings.openAIKey) {
@@ -70,8 +75,14 @@ const AppContent = () => {
 
 function App() {
   const [openAIKey, setOpenAIKey] = useState(() => {
-    return localStorage.getItem('openai_api_key') || '';
+    const savedKey = localStorage.getItem('openai_api_key') || '';
+    console.log("Initial OpenAI key loaded:", savedKey ? "Key exists" : "No key");
+    return savedKey;
   });
+
+  useEffect(() => {
+    console.log("App mounted with SimulationProvider");
+  }, []);
 
   return (
     <SimulationProvider openAIKey={openAIKey}>

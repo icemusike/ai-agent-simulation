@@ -10,6 +10,7 @@ const MessageLog = forwardRef(({ messages, agents, location }, ref) => {
   // Filter messages to only show those between agents in the current location
   const locationAgentIds = agents
     .filter(agent => {
+      // Check if agent is in the current location
       const isInLocation = agent.location === location;
       console.log(`Agent ${agent.name} (${agent.id}) location: ${agent.location}, current location: ${location}, is in location: ${isInLocation}`);
       return isInLocation;
@@ -22,6 +23,7 @@ const MessageLog = forwardRef(({ messages, agents, location }, ref) => {
     const senderInLocation = locationAgentIds.includes(msg.senderId);
     const receiverInLocation = locationAgentIds.includes(msg.receiverId);
     console.log(`Message ${msg.id} - sender in location: ${senderInLocation}, receiver in location: ${receiverInLocation}`);
+    // For messages to be shown, both sender and receiver must be in the current location
     return senderInLocation && receiverInLocation;
   });
   

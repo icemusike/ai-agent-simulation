@@ -707,7 +707,10 @@ const Room = ({ isRunning }) => {
         
         <MessageLog 
           messages={messages} 
-          agents={agents} 
+          agents={agents.map(agent => ({
+            ...agent,
+            location: getAgentLocation(agent.id)
+          }))} 
           location={activeRoom}
           ref={messageLogRef}
         />

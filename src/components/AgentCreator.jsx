@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useSimulation } from '../context/SimulationContext';
 import './AgentCreator.css';
 
@@ -18,7 +18,7 @@ const popularNames = [
 ];
 
 const AgentCreator = () => {
-  const { addAgent } = useSimulation();
+  const simulation = useSimulation();
   const [name, setName] = useState('');
   const [role, setRole] = useState('');
   const [backstory, setBackstory] = useState('');
@@ -28,6 +28,20 @@ const AgentCreator = () => {
     curiosity: 0.5,
     extraversion: 0.5
   });
+  
+  // References for button elements
+  const friendlyBtnRef = useRef(null);
+  const aggressiveBtnRef = useRef(null);
+  const shyBtnRef = useRef(null);
+  const randomBtnRef = useRef(null);
+  const randomizeBtnRef = useRef(null);
+  const createBtnRef = useRef(null);
+
+  // Check if simulation context is available
+  useEffect(() => {
+    console.log("SimulationContext available:", simulation);
+    console.log("addAgent function available:", typeof simulation.addAgent === 'function');
+  }, [simulation]);
 
   const handleTraitChange = (trait, value) => {
     setTraits(prev => ({
@@ -37,6 +51,8 @@ const AgentCreator = () => {
   };
 
   const handleRandomize = () => {
+    console.log("Randomize button clicked");
+    
     setTraits({
       friendliness: Math.random(),
       aggression: Math.random(),
@@ -50,7 +66,8 @@ const AgentCreator = () => {
   };
 
   const handleSubmit = (e) => {
-    e.preventDefault();
+    if (e) e.preventDefault();
+    console.log("Form submitted");
     
     if (!name.trim()) {
       alert('Please provide a name for the agent');
@@ -64,105 +81,143 @@ const AgentCreator = () => {
       traits
     };
     
-    addAgent(newAgent);
+    console.log("Creating new agent:", newAgent);
     
-    // Reset form
-    setName('');
-    setRole('');
-    setBackstory('');
-    setTraits({
-      friendliness: 0.5,
-      aggression: 0.5,
-      curiosity: 0.5,
-      extraversion: 0.5
-    });
-  };
-
-  const handleQuickCreate = (preset) => {
-    let newAgent = {
-      name: '',
-      role: '',
-      backstory: '',
-      traits: {
+    try {
+      const createdAgent = simulation.addAgent(newAgent);
+      console.log("Agent created successfully:", createdAgent);
+      
+      // Reset form
+      setName('');
+      setRole('');
+      setBackstory('');
+      setTraits({
         friendliness: 0.5,
         aggression: 0.5,
         curiosity: 0.5,
         extraversion: 0.5
-      }
-    };
+      });
+    } catch (error) {
+      console.error("Error adding agent:", error);
+      alert("There was an error creating the agent. Please try again.");
+    }
+  };
+
+  // Simplified quick create function
+  const createPresetAgent = (preset) => {
+    console.log("Quick create clicked:", preset);
     
     // Generate a random popular name
     const randomName = getRandomName();
+    let newAgent = {};
     
-    switch(preset) {
-      case 'friendly':
-        newAgent = {
-          name: randomName,
-          role: 'Friendly Neighbor',
-          backstory: 'Always looking to help others and make new friends.',
-          traits: {
-            friendliness: 0.9,
-            aggression: 0.1,
-            curiosity: 0.7,
-            extraversion: 0.8
-          }
-        };
-        break;
-      case 'aggressive':
-        newAgent = {
-          name: randomName,
-          role: 'Troublemaker',
-          backstory: 'Has a chip on their shoulder and always looking for conflict.',
-          traits: {
-            friendliness: 0.2,
-            aggression: 0.9,
-            curiosity: 0.5,
-            extraversion: 0.7
-          }
-        };
-        break;
-      case 'shy':
-        newAgent = {
-          name: randomName,
-          role: 'Observer',
-          backstory: 'Prefers to keep to themselves but has deep thoughts.',
-          traits: {
-            friendliness: 0.6,
-            aggression: 0.2,
-            curiosity: 0.8,
-            extraversion: 0.2
-          }
-        };
-        break;
-      case 'random':
-        newAgent = {
-          name: randomName,
-          role: ['Resident', 'Visitor', 'Worker', 'Student', 'Researcher'][Math.floor(Math.random() * 5)],
-          backstory: 'A mysterious individual with an unknown past.',
-          traits: {
-            friendliness: Math.random(),
-            aggression: Math.random(),
-            curiosity: Math.random(),
-            extraversion: Math.random()
-          }
-        };
-        break;
+    if (preset === 'friendly') {
+      newAgent = {
+        name: randomName,
+        role: 'Friendly Neighbor',
+        backstory: 'Always looking to help others and make new friends.',
+        traits: {
+          friendliness: 0.9,
+          aggression: 0.1,
+          curiosity: 0.7,
+          extraversion: 0.8
+        }
+      };
+    } 
+    else if (preset === 'aggressive') {
+      newAgent = {
+        name: randomName,
+        role: 'Troublemaker',
+        backstory: 'Has a chip on their shoulder and always looking for conflict.',
+        traits: {
+          friendliness: 0.2,
+          aggression: 0.9,
+          curiosity: 0.5,
+          extraversion: 0.7
+        }
+      };
+    }
+    else if (preset === 'shy') {
+      newAgent = {
+        name: randomName,
+        role: 'Observer',
+        backstory: 'Prefers to keep to themselves but has deep thoughts.',
+        traits: {
+          friendliness: 0.6,
+          aggression: 0.2,
+          curiosity: 0.8,
+          extraversion: 0.2
+        }
+      };
+    }
+    else if (preset === 'random') {
+      newAgent = {
+        name: randomName,
+        role: ['Resident', 'Visitor', 'Worker', 'Student', 'Researcher'][Math.floor(Math.random() * 5)],
+        backstory: 'A mysterious individual with an unknown past.',
+        traits: {
+          friendliness: Math.random(),
+          aggression: Math.random(),
+          curiosity: Math.random(),
+          extraversion: Math.random()
+        }
+      };
+    }
+    else {
+      console.error("Unknown preset:", preset);
+      return;
     }
     
-    addAgent(newAgent);
+    console.log("Creating preset agent:", newAgent);
+    
+    try {
+      simulation.addAgent(newAgent);
+      console.log("Quick create agent added successfully");
+    } catch (error) {
+      console.error("Error during quick create:", error);
+      alert("There was an error creating the agent. Please try again.");
+    }
   };
 
   return (
-    <div className="agent-creator">
+    <div className="agent-creator" style={{ position: 'relative', zIndex: 10 }}>
       <h2>Create New Agent</h2>
       
       <div className="quick-create">
         <h3>Quick Create</h3>
         <div className="quick-buttons">
-          <button onClick={() => handleQuickCreate('friendly')}>Friendly</button>
-          <button onClick={() => handleQuickCreate('aggressive')}>Aggressive</button>
-          <button onClick={() => handleQuickCreate('shy')}>Shy</button>
-          <button onClick={() => handleQuickCreate('random')}>Random</button>
+          <button 
+            type="button" 
+            ref={friendlyBtnRef}
+            onClick={() => createPresetAgent('friendly')}
+            style={{ cursor: 'pointer', pointerEvents: 'auto' }}
+          >
+            Friendly
+          </button>
+          <button 
+            type="button" 
+            ref={aggressiveBtnRef}
+            onClick={() => createPresetAgent('aggressive')}
+            style={{ cursor: 'pointer', pointerEvents: 'auto' }}
+          >
+            Aggressive
+          </button>
+          <button 
+            type="button" 
+            ref={shyBtnRef}
+            onClick={() => createPresetAgent('shy')}
+            style={{ cursor: 'pointer', pointerEvents: 'auto' }}
+          >
+            Shy
+          </button>
+          <button 
+            type="button" 
+            ref={randomBtnRef}
+            onClick={() => createPresetAgent('random')}
+            style={{ cursor: 'pointer', pointerEvents: 'auto' }}
+          >
+            Random
+          </button>
         </div>
       </div>
       
@@ -203,7 +258,13 @@ const AgentCreator = () => {
         <div className="traits-section">
           <div className="traits-header">
             <h3>Personality Traits</h3>
-            <button type="button" onClick={handleRandomize} className="randomize-btn">
+            <button 
+              type="button" 
+              ref={randomizeBtnRef}
+              onClick={handleRandomize} 
+              className="randomize-btn"
+              style={{ cursor: 'pointer', pointerEvents: 'auto' }}
+            >
               Randomize
             </button>
           </div>
@@ -229,7 +290,14 @@ const AgentCreator = () => {
           </div>
         </div>
         
-        <button type="submit" className="create-btn">Create Agent</button>
+        <button 
+          type="submit" 
+          ref={createBtnRef}
+          className="create-btn"
+          style={{ cursor: 'pointer', pointerEvents: 'auto' }}
+        >
+          Create Agent
+        </button>
       </form>
     </div>
   );

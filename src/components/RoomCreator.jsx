@@ -69,12 +69,61 @@ const POPULAR_NAMES = [
   "Taylor", "Jordan", "Casey", "Riley", "Jessie", "Avery", "Jaime", "Peyton", "Kerry", "Jody"
 ];
 
+// Example preset guidelines that users can choose from
+const GUIDELINE_PRESETS = [
+  { 
+    name: "Select a preset (optional)", 
+    value: "" 
+  },
+  { 
+    name: "Comedy", 
+    value: "Create a comedic scenario with lots of misunderstandings and humorous interactions. Include funny personality quirks for the agents and set up situations that lead to amusing conflicts and resolutions." 
+  },
+  { 
+    name: "Drama", 
+    value: "Design a dramatic narrative with emotional depth and complex relationships. Include personal histories that create tension, secrets that can be revealed, and opportunities for character growth." 
+  },
+  { 
+    name: "Mystery", 
+    value: "Incorporate a mystery that the agents need to solve together. Create a scenario where information is distributed among different agents, and they need to collaborate to discover the truth." 
+  },
+  { 
+    name: "Competition", 
+    value: "Set up a competitive environment where agents are vying for a specific goal or reward. Create balanced but contrasting personalities, with some agents forming alliances while others prefer to work alone." 
+  },
+  { 
+    name: "Cooperation", 
+    value: "Design a scenario that encourages teamwork and cooperation. Create complementary personalities and skills that work well together, but also include enough diversity to make the interactions interesting." 
+  },
+  { 
+    name: "Conflict Resolution", 
+    value: "Create a scenario with initial tensions and conflicts between agents, but with pathways toward resolution. Design personalities that clash at first but can learn to understand and appreciate each other." 
+  },
+  { 
+    name: "Office Politics", 
+    value: "Focus on workplace dynamics with hierarchies, ambitions, and professional relationships. Include power struggles, career advancement opportunities, and workplace challenges." 
+  },
+  { 
+    name: "Classroom Dynamics", 
+    value: "Create a classroom environment with student-teacher relationships and peer interactions. Include learning objectives, classroom challenges, and educational growth opportunities." 
+  },
+  { 
+    name: "Cooking Competition", 
+    value: "Design a high-pressure culinary competition with time constraints, technical challenges, and judging criteria. Balance competitive spirit with opportunities for collaboration and learning." 
+  },
+  { 
+    name: "Sports Team", 
+    value: "Focus on team dynamics, training scenarios, and competition preparation. Include leadership challenges, individual ambitions, and team cohesion elements." 
+  }
+];
+
 const RoomCreator = ({ onClose }) => {
   const { hasOpenAI, generateRoomStoryboard, addRoom, addAgent, setActiveRoom, moveAgent } = useSimulation();
   const [selectedTemplate, setSelectedTemplate] = useState(null);
   const [roomName, setRoomName] = useState('');
   const [customDescription, setCustomDescription] = useState('');
   const [customRoles, setCustomRoles] = useState('');
+  const [userGuidelines, setUserGuidelines] = useState('');
   const [agentCount, setAgentCount] = useState(5);
   const [isGeneratingStoryboard, setIsGeneratingStoryboard] = useState(false);
   const [storyboard, setStoryboard] = useState(null);
@@ -110,7 +159,8 @@ const RoomCreator = ({ onClose }) => {
         roomName,
         description,
         roles,
-        agentCount
+        agentCount,
+        userGuidelines
       );
       
       if (storyboardData) {
@@ -135,6 +185,12 @@ const RoomCreator = ({ onClose }) => {
     
     if (!roomName.trim()) {
       alert('Please enter a room name.');
+      return;
+    }
+    
+    // Ensure we have at least 2 agents
+    if (generatedAgents.length > 0 && generatedAgents.length < 2) {
+      alert('At least 2 agents are required for the simulation.');
       return;
     }
     
@@ -314,6 +370,47 @@ const RoomCreator = ({ onClose }) => {
                     Generate a detailed storyboard and agent profiles for your simulation using AI.
                     This will create a narrative framework and personalities for your agents.
                   </p>
+
+                  <div className="storyboard-customization">
+                    <h4>
+                      <span className="icon">✨</span> 
+                      Customize Your Storyboard
+                    </h4>
+                    <p className="customization-description">
+                      Shape the narrative by providing guidelines to the AI. You can influence the genre, themes, 
+                      relationships, conflicts, and overall mood of your simulation.
+                    </p>
+                  </div>
+
+                  <div className="form-group">
+                    <label htmlFor="userGuidelines">Storyboard Guidelines:</label>
+                    <div className="guideline-preset-container">
+                      <select 
+                        className="guideline-preset-select"
+                        onChange={(e) => {
+                          const selectedValue = e.target.value;
+                          setUserGuidelines(selectedValue);
+                        }}
+                      >
+                        {GUIDELINE_PRESETS.map((preset, index) => (
+                          <option key={index} value={preset.value}>
+                            {preset.name}
+                          </option>
+                        ))}
+                      </select>
+                      <div className="preset-help">← Select a preset or write your own</div>
+                    </div>
+                    <textarea
+                      id="userGuidelines"
+                      value={userGuidelines}
+                      onChange={(e) => setUserGuidelines(e.target.value)}
+                      placeholder="Provide guidelines for the AI to customize your storyboard (e.g., genre, themes, specific relationships or conflicts, mood, time period)"
+                      rows="4"
+                    ></textarea>
+                    <div className="input-hint">
+                      The AI will use these guidelines to shape the story, characters, and interactions.
+                    </div>
+                  </div>
                   
                   <button 
                     type="button" 
@@ -331,14 +428,220 @@ const RoomCreator = ({ onClose }) => {
                         {storyboard}
                       </div>
                       <div className="generated-agents">
-                        <h4>Generated Agents ({generatedAgents.length})</h4>
-                        <ul>
+                        <div className="agents-header">
+                          <h4>Generated Agents ({generatedAgents.length})</h4>
+                          <button 
+                            type="button" 
+                            className="add-agent-btn"
+                            onClick={() => {
+                              const templateIndex = Math.floor(Math.random() * PERSONALITY_PRESETS.length);
+                              const preset = Object.values(PERSONALITY_PRESETS)[templateIndex];
+                              const newAgent = {
+                                name: POPULAR_NAMES[Math.floor(Math.random() * POPULAR_NAMES.length)],
+                                role: selectedTemplate.id === 'custom' 
+                                  ? (customRoles.split(',').map(role => role.trim())[0] || 'Agent') 
+                                  : selectedTemplate.roles[0],
+                                backstory: `A new agent in the ${roomName} simulation.`,
+                                traits: { ...preset }
+                              };
+                              setGeneratedAgents([...generatedAgents, newAgent]);
+                            }}
+                            disabled={generatedAgents.length >= 10}
+                            title={generatedAgents.length >= 10 ? "Maximum 10 agents allowed" : "Add a new agent"}
+                          >
+                            Add Agent
+                          </button>
+                        </div>
+                        <p className="agent-edit-hint">You can customize the agents' names and roles below before creating the room.</p>
+                        <div className="agent-edit-list">
                           {generatedAgents.map((agent, index) => (
-                            <li key={index}>
-                              <strong>{agent.name}</strong> - {agent.role}
-                            </li>
+                            <div key={index} className="agent-edit-item">
+                              <div className="agent-edit-header">Agent {index + 1}</div>
+                              <button 
+                                className="remove-agent-btn"
+                                onClick={() => {
+                                  const updatedAgents = [...generatedAgents];
+                                  updatedAgents.splice(index, 1);
+                                  setGeneratedAgents(updatedAgents);
+                                }}
+                                disabled={generatedAgents.length <= 2}
+                                title={generatedAgents.length <= 2 ? "At least 2 agents are required" : "Remove agent"}
+                              >
+                                ×
+                              </button>
+                              <div className="agent-edit-field">
+                                <label htmlFor={`agent-name-${index}`}>Name:</label>
+                                <input
+                                  id={`agent-name-${index}`}
+                                  type="text"
+                                  value={agent.name}
+                                  onChange={(e) => {
+                                    const updatedAgents = [...generatedAgents];
+                                    updatedAgents[index] = {
+                                      ...updatedAgents[index],
+                                      name: e.target.value
+                                    };
+                                    setGeneratedAgents(updatedAgents);
+                                  }}
+                                />
+                              </div>
+                              <div className="agent-edit-field">
+                                <label htmlFor={`agent-role-${index}`}>Role:</label>
+                                <input
+                                  id={`agent-role-${index}`}
+                                  type="text"
+                                  value={agent.role}
+                                  onChange={(e) => {
+                                    const updatedAgents = [...generatedAgents];
+                                    updatedAgents[index] = {
+                                      ...updatedAgents[index],
+                                      role: e.target.value
+                                    };
+                                    setGeneratedAgents(updatedAgents);
+                                  }}
+                                />
+                              </div>
+                              <div className="agent-traits">
+                                <div className="trait-display">
+                                  <span className="trait-label">Friendliness:</span>
+                                  <div className="trait-slider-container">
+                                    <input 
+                                      type="range" 
+                                      min="0" 
+                                      max="1" 
+                                      step="0.1" 
+                                      value={agent.traits.friendliness}
+                                      onChange={(e) => {
+                                        const updatedAgents = [...generatedAgents];
+                                        updatedAgents[index] = {
+                                          ...updatedAgents[index],
+                                          traits: {
+                                            ...updatedAgents[index].traits,
+                                            friendliness: parseFloat(e.target.value)
+                                          }
+                                        };
+                                        setGeneratedAgents(updatedAgents);
+                                      }}
+                                      className="trait-slider"
+                                    />
+                                    <div className="trait-bar">
+                                      <div 
+                                        className="trait-value" 
+                                        style={{width: `${agent.traits.friendliness * 100}%`}}
+                                      ></div>
+                                    </div>
+                                  </div>
+                                </div>
+                                <div className="trait-display">
+                                  <span className="trait-label">Aggression:</span>
+                                  <div className="trait-slider-container">
+                                    <input 
+                                      type="range" 
+                                      min="0" 
+                                      max="1" 
+                                      step="0.1" 
+                                      value={agent.traits.aggression}
+                                      onChange={(e) => {
+                                        const updatedAgents = [...generatedAgents];
+                                        updatedAgents[index] = {
+                                          ...updatedAgents[index],
+                                          traits: {
+                                            ...updatedAgents[index].traits,
+                                            aggression: parseFloat(e.target.value)
+                                          }
+                                        };
+                                        setGeneratedAgents(updatedAgents);
+                                      }}
+                                      className="trait-slider"
+                                    />
+                                    <div className="trait-bar">
+                                      <div 
+                                        className="trait-value" 
+                                        style={{width: `${agent.traits.aggression * 100}%`}}
+                                      ></div>
+                                    </div>
+                                  </div>
+                                </div>
+                                <div className="trait-display">
+                                  <span className="trait-label">Curiosity:</span>
+                                  <div className="trait-slider-container">
+                                    <input 
+                                      type="range" 
+                                      min="0" 
+                                      max="1" 
+                                      step="0.1" 
+                                      value={agent.traits.curiosity}
+                                      onChange={(e) => {
+                                        const updatedAgents = [...generatedAgents];
+                                        updatedAgents[index] = {
+                                          ...updatedAgents[index],
+                                          traits: {
+                                            ...updatedAgents[index].traits,
+                                            curiosity: parseFloat(e.target.value)
+                                          }
+                                        };
+                                        setGeneratedAgents(updatedAgents);
+                                      }}
+                                      className="trait-slider"
+                                    />
+                                    <div className="trait-bar">
+                                      <div 
+                                        className="trait-value" 
+                                        style={{width: `${agent.traits.curiosity * 100}%`}}
+                                      ></div>
+                                    </div>
+                                  </div>
+                                </div>
+                                <div className="trait-display">
+                                  <span className="trait-label">Extraversion:</span>
+                                  <div className="trait-slider-container">
+                                    <input 
+                                      type="range" 
+                                      min="0" 
+                                      max="1" 
+                                      step="0.1" 
+                                      value={agent.traits.extraversion}
+                                      onChange={(e) => {
+                                        const updatedAgents = [...generatedAgents];
+                                        updatedAgents[index] = {
+                                          ...updatedAgents[index],
+                                          traits: {
+                                            ...updatedAgents[index].traits,
+                                            extraversion: parseFloat(e.target.value)
+                                          }
+                                        };
+                                        setGeneratedAgents(updatedAgents);
+                                      }}
+                                      className="trait-slider"
+                                    />
+                                    <div className="trait-bar">
+                                      <div 
+                                        className="trait-value" 
+                                        style={{width: `${agent.traits.extraversion * 100}%`}}
+                                      ></div>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="agent-backstory">
+                                <span className="backstory-label">Backstory:</span>
+                                <textarea
+                                  className="backstory-edit"
+                                  value={agent.backstory}
+                                  onChange={(e) => {
+                                    const updatedAgents = [...generatedAgents];
+                                    updatedAgents[index] = {
+                                      ...updatedAgents[index],
+                                      backstory: e.target.value
+                                    };
+                                    setGeneratedAgents(updatedAgents);
+                                  }}
+                                  rows="2"
+                                ></textarea>
+                              </div>
+                            </div>
                           ))}
-                        </ul>
+                        </div>
                       </div>
                     </div>
                   )}
